@@ -1,4 +1,4 @@
-# Shopping QA — App de pruebas
+# Shopping QA — App de pruebas.
 
 Aplicación full‑stack Next.js 14 (App Router) construida exclusivamente como **sujeto bajo prueba (SUT) para QA manual**. Persiste todo en memoria — no hay base de datos. Cada vez que se reinicia el servidor se vuelve al estado inicial.
 
