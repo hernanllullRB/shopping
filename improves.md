@@ -1,0 +1,5 @@
+1) Quiero que tenga un fondo de pantalla tipo gradiente el login
+2) Quiero que el menu del admin permita navegar hacia atras cuando entraste en una seccion, por ejemplo si entraste a usuarios, debes poder volver al menu de "admin" sin tener que apretar sobre "admin", algun boton para volver atras
+3) Quiero que el filtro de busqueda busque cada vez que cambias de letra, no cuando apretas enter
+4) Quiero que en la paginacion, el numero se marque con color para saber en que pagina estoy, y cuando ya llegaste al final que desaparezca el boton de "siguiente", y cuando estas en el inicio que no aparezca "anterior"
+5) Al lado del boton de "salir", donde aparece el nombre parece un boton mas de la navegacion, quiero que lo modifiques para que se entienda que ahi va el nombre y no es otro boton mas de la navegacion
