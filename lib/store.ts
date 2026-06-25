@@ -12,7 +12,7 @@ interface Store {
   users: Map<string, User>;
   usernameIndex: Map<string, string>;
   emailIndex: Map<string, string>;
-  tokens: Map<string, { username: string; expiresAt: number }>;
+  revokedTokens: Set<string>;
   carts: Map<string, CartItem[]>;
   orders: Order[];
   products: Map<string, Product>;
@@ -116,7 +116,7 @@ function createStore(): Store {
     users,
     usernameIndex,
     emailIndex,
-    tokens: new Map(),
+    revokedTokens: new Set(),
     carts: new Map(),
     orders: [],
     products: seedProducts(),

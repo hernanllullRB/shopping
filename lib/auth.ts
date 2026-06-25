@@ -7,32 +7,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_TTL_SECONDS = 60 * 60 * 24; // 24h
 
 export function signToken(payload: TokenPayload): string {
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_TTL_SECONDS });
-  const store = getStore();
-  store.tokens.set(token, {
-    username: payload.username,
-    expiresAt: Date.now() + TOKEN_TTL_SECONDS * 1000,
-  });
-  return token;
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_TTL_SECONDS });
 }
 
 export function invalidateToken(token: string): void {
-  getStore().tokens.delete(token);
+  getStore().revokedTokens.add(token);
 }
 
 export function verifyToken(token: string): TokenPayload | null {
-  const store = getStore();
-  const tracked = store.tokens.get(token);
-  if (!tracked) return null;
-  if (tracked.expiresAt < Date.now()) {
-    store.tokens.delete(token);
-    return null;
-  }
+  if (getStore().revokedTokens.has(token)) return null;
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
     return { username: decoded.username, role: decoded.role };
   } catch {
-    store.tokens.delete(token);
     return null;
   }
 }
