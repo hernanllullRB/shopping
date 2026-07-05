@@ -200,7 +200,23 @@ export function getSwaggerSpec(): object {
             tags: ['Account'],
             summary: 'Cambiar contraseña',
             security: [{ bearerAuth: [] }],
-            responses: { 200: { description: 'OK' }, 400: { description: 'Validación' } },
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      currentPassword: { type: 'string' },
+                      newPassword: { type: 'string', minLength: 8, description: 'Mínimo 8 caracteres, al menos una letra y un número' },
+                      confirmPassword: { type: 'string', description: 'Debe coincidir con newPassword' },
+                    },
+                    required: ['currentPassword', 'newPassword', 'confirmPassword'],
+                  },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' }, 400: { description: 'Validación o contraseña actual incorrecta' }, 404: { description: 'Usuario no encontrado' } },
           },
         },
         '/api/products': {
@@ -236,21 +252,100 @@ export function getSwaggerSpec(): object {
             tags: ['Cart'],
             summary: 'Agregar item',
             security: [{ bearerAuth: [] }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      productId: { type: 'string' },
+                      quantity: { type: 'integer', minimum: 1, maximum: 10 },
+                    },
+                    required: ['productId', 'quantity'],
+                  },
+                },
+              },
+            },
             responses: { 200: { description: 'OK' }, 422: { description: 'Stock insuficiente' } },
           },
         },
         '/api/cart/items/{productId}': {
-          put: { tags: ['Cart'], summary: 'Actualizar cantidad', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
-          delete: { tags: ['Cart'], summary: 'Remover item', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
+          put: {
+            tags: ['Cart'],
+            summary: 'Actualizar cantidad',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'productId', required: true, schema: { type: 'string' } }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      quantity: { type: 'integer', minimum: 1, maximum: 10 },
+                    },
+                    required: ['quantity'],
+                  },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' }, 404: { description: 'Item no encontrado' }, 422: { description: 'Stock insuficiente' } },
+          },
+          delete: {
+            tags: ['Cart'],
+            summary: 'Remover item',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'productId', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'OK' } },
+          },
         },
         '/api/coupons/validate': {
-          post: { tags: ['Coupons'], summary: 'Validar cupón', responses: { 200: { description: 'OK' } } },
+          post: {
+            tags: ['Coupons'],
+            summary: 'Validar cupón',
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      code: { type: 'string' },
+                      subtotal: { type: 'number', minimum: 0 },
+                    },
+                    required: ['code', 'subtotal'],
+                  },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' }, 404: { description: 'Cupón no encontrado o inválido' } },
+          },
         },
         '/api/checkout': {
           post: {
             tags: ['Checkout'],
             summary: 'Procesar pago',
             security: [{ bearerAuth: [] }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      paymentMethod: { type: 'string', enum: ['credit_card'] },
+                      cardHolder: { type: 'string' },
+                      cardNumber: { type: 'string', pattern: '^\\d{16}$', description: '16 dígitos' },
+                      expiry: { type: 'string', pattern: '^(0[1-9]|1[0-2])/\\d{2}$', description: 'Formato MM/YY' },
+                      cvv: { type: 'string', pattern: '^\\d{3}$', description: '3 dígitos' },
+                      couponCode: { type: 'string' },
+                    },
+                    required: ['paymentMethod', 'cardHolder', 'cardNumber', 'expiry', 'cvv'],
+                  },
+                },
+              },
+            },
             responses: {
               201: { description: 'Orden creada' },
               402: { description: 'Pago rechazado' },
@@ -262,24 +357,119 @@ export function getSwaggerSpec(): object {
           get: { tags: ['Orders'], summary: 'Listar órdenes del usuario', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
         },
         '/api/orders/{id}': {
-          get: { tags: ['Orders'], summary: 'Detalle de orden', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
+          get: {
+            tags: ['Orders'],
+            summary: 'Detalle de orden',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'OK' }, 404: { description: 'No encontrada' } },
+          },
         },
         '/api/orders/{id}/cancel': {
-          post: { tags: ['Orders'], summary: 'Cancelar orden', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
+          post: {
+            tags: ['Orders'],
+            summary: 'Cancelar orden',
+            description: 'No requiere body. Solo cancela órdenes en estado paid.',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+            responses: {
+              200: { description: 'OK' },
+              403: { description: 'Acceso denegado' },
+              404: { description: 'Orden no encontrada' },
+              422: { description: 'Estado no cancelable' },
+            },
+          },
         },
         '/api/admin/products': {
           get: { tags: ['Admin'], summary: 'Listar todos los productos', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
-          post: { tags: ['Admin'], summary: 'Crear producto', security: [{ bearerAuth: [] }], responses: { 201: { description: 'Creado' } } },
+          post: {
+            tags: ['Admin'],
+            summary: 'Crear producto',
+            security: [{ bearerAuth: [] }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      description: { type: 'string' },
+                      price: { type: 'number', minimum: 0 },
+                      stock: { type: 'integer', minimum: 0 },
+                      imageUrl: { type: 'string', format: 'uri' },
+                      category: { type: 'string', enum: ['Electronics', 'Clothing', 'Books'] },
+                      active: { type: 'boolean' },
+                    },
+                    required: ['name', 'description', 'price', 'stock', 'imageUrl', 'category'],
+                  },
+                },
+              },
+            },
+            responses: { 201: { description: 'Creado' }, 400: { description: 'Validación' }, 403: { description: 'Solo admin' } },
+          },
         },
         '/api/admin/products/{id}': {
-          put: { tags: ['Admin'], summary: 'Actualizar producto', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
-          delete: { tags: ['Admin'], summary: 'Desactivar producto', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
+          put: {
+            tags: ['Admin'],
+            summary: 'Actualizar producto',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    description: 'Todos los campos son opcionales (partial update)',
+                    properties: {
+                      name: { type: 'string' },
+                      description: { type: 'string' },
+                      price: { type: 'number', minimum: 0 },
+                      stock: { type: 'integer', minimum: 0 },
+                      imageUrl: { type: 'string', format: 'uri' },
+                      category: { type: 'string', enum: ['Electronics', 'Clothing', 'Books'] },
+                      active: { type: 'boolean' },
+                    },
+                  },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' }, 404: { description: 'No encontrado' } },
+          },
+          delete: {
+            tags: ['Admin'],
+            summary: 'Desactivar producto',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'OK' }, 404: { description: 'No encontrado' } },
+          },
         },
         '/api/admin/orders': {
           get: { tags: ['Admin'], summary: 'Listar todas las órdenes', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
         },
         '/api/admin/orders/{id}': {
-          put: { tags: ['Admin'], summary: 'Cambiar status de orden', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
+          put: {
+            tags: ['Admin'],
+            summary: 'Cambiar status de orden',
+            security: [{ bearerAuth: [] }],
+            parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', enum: ['paid', 'shipped', 'delivered', 'cancelled'] },
+                    },
+                    required: ['status'],
+                  },
+                },
+              },
+            },
+            responses: { 200: { description: 'OK' }, 404: { description: 'No encontrada' }, 422: { description: 'Transición inválida' } },
+          },
         },
         '/api/admin/users': {
           get: { tags: ['Admin'], summary: 'Listar usuarios', security: [{ bearerAuth: [] }], responses: { 200: { description: 'OK' } } },
